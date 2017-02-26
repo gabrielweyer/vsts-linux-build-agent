@@ -1,0 +1,4 @@
+src/deploy.sh eol=lf
+src/parameters.json eol=lf
+src/post-deployment-configuration.sh eol=lf
+src/template.json eol=lf

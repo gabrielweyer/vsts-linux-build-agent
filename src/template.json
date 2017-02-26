@@ -1,0 +1,299 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUsername": {
+            "type": "string",
+            "minLength": 1,
+            "metadata": {
+                "description": "The Virtual Machine admin user name, favor a randomly generated name"
+            }
+        },
+        "adminPublicKey": {
+            "type": "securestring",
+            "minLength": 1,
+            "metadata": {
+                "description": "The public key used by the admin user to SSH into the Virtual Machine"
+            }
+        },
+        "vstsUrl": {
+            "type": "string",
+            "minLength": 1,
+            "metadata": {
+                "description": "base URL of your VSTS account ('https://<your-account>.visualstudio.com/' for example)"
+            }
+        },
+        "agentName": {
+            "type": "string",
+            "minLength": 1,
+            "metadata": {
+                "description": "The name of the VSTS build agent in the agents pool"
+            }
+        },
+        "agentPool": {
+            "type": "string",
+            "minLength": 1,
+            "metadata": {
+                "description": "Name of the the VSTS agent pool, due to a bug in the VSTS build agent do not use spaces inside the name"
+            }
+        },
+        "personalAccessToken": {
+            "type": "securestring",
+            "minLength": 1,
+            "metadata": {
+                "description": "A Personal Access Token, see https://www.visualstudio.com/en-us/docs/build/actions/agents/v2-linux#decide-which-user-youll-use on how to obtain one"
+            }
+        },
+        "virtualMachineName": {
+            "type": "string",
+            "minLength": 1,
+            "metadata": {
+                "description": "The name of the Virtual Machine"
+            }
+        },
+        "virtualMachineSize": {
+            "type": "string",
+            "defaultValue": "Basic_A0",
+            "minLength": 1,
+            "metadata": {
+                "description": "The size of the Virtual Machine, a Docker build server does not require a lot of compute power"
+            }
+        },
+        "storageAccountType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "minLength": 1,
+            "metadata": {
+                "description": "This will store the hard drive. Vary depending on your performance, legal and durability requirements"
+            }
+        },
+        "diagnosticsStorageAccountType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "minLength": 1,
+            "metadata": {
+                "description": "This will store the diagnostic logs. Vary depending on your performance, legal and durability requirements"
+            }
+        }
+    },
+    "variables": {
+        "networkInterfaceName": "docker-build-agent-ni",
+        "networkSecurityGroupName": "docker-build-agent-nsg",
+        "virtualNetworkName": "docker-build-vnet",
+        "subnetName": "docker-build-subnet",
+        "vnetId": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetId'), '/subnets/', variables('subnetName'))]",
+        "storageAccountName": "[concat('dckragtdisk', uniqueString(resourceGroup().id))]",
+        "diagnosticsStorageAccountName": "[concat('dckragtdiag', uniqueString(resourceGroup().id))]",
+        "publicIpAddressName": "docker-build-agent-ip"
+    },
+    "resources": [
+        {
+            "name": "[parameters('virtualMachineName')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2016-04-30-preview",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/', variables('networkInterfaceName'))]"
+            ],
+            "tags": {
+                "purpose": "build"
+            },
+            "properties": {
+                "osProfile": {
+                    "computerName": "[parameters('virtualMachineName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": "true",
+                        "ssh": {
+                            "publicKeys": [
+                                {
+                                    "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+                                    "keyData": "[parameters('adminPublicKey')]"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "hardwareProfile": {
+                    "vmSize": "[parameters('virtualMachineSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "16.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[parameters('virtualMachineName')]",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat(reference(variables('storageAccountName'), '2015-06-15').primaryEndpoints.blob, 'vhds/', parameters('virtualMachineName'), '.vhd')]"
+                        }
+                    },
+                    "dataDisks": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[reference(variables('diagnosticsStorageAccountName'), '2015-06-15').primaryEndpoints.blob]"
+                    }
+                }
+            },
+            "resources": [
+                {
+                    "name": "post-deployment-configuration",
+                    "type": "extensions",
+                    "location": "[resourceGroup().location]",
+                    "apiVersion": "2015-06-15",
+                    "dependsOn": [
+                        "[concat('Microsoft.Compute/virtualMachines/', concat(parameters('virtualMachineName')))]"
+                    ],
+                    "tags": {
+                        "displayName": "post-deployment-configuration"
+                    },
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "fileUris": [
+                                "https://gist.githubusercontent.com/gabrielweyer/4ec2cd4d8e2f03ae0f0b497aae926e2b/raw/18945d4ae754ed732be30194cc4831d50ae8e741/post-deployment-configuration.sh"
+                            ]
+                        },
+                        "protectedSettings": {
+                            "commandToExecute": "[concat('./post-deployment-configuration.sh -u', parameters('vstsUrl'), ' --agent-name \"', parameters('agentName'), '\" --agent-pool \"', parameters('agentPool'), '\" -p ', parameters('personalAccessToken'), ' --admin-username ', parameters('adminUsername'))]"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "[variables('storageAccountName')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "accountType": "[parameters('storageAccountType')]"
+            },
+            "comments": "This storage account is used to store the Virtual Machine disks",
+            "tags": {
+                "purpose": "build"
+            }
+        },
+        {
+            "name": "[variables('diagnosticsStorageAccountName')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "accountType": "[parameters('diagnosticsStorageAccountType')]"
+            },
+            "comments": "This storage account is used to store the diagnostic logs",
+            "tags": {
+                "purpose": "build"
+            }
+        },
+        {
+            "name": "[variables('virtualNetworkName')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/24"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnetName')]",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/24"
+                        }
+                    }
+                ]
+            },
+            "tags": {
+                "purpose": "build"
+            }
+        },
+        {
+            "name": "[variables('networkInterfaceName')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+                "[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressName'))]",
+                "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIpAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('publicIpAddressName'))]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
+                }
+            },
+            "tags": {
+                "purpose": "build"
+            }
+        },
+        {
+            "name": "[variables('publicIpAddressName')]",
+            "type": "Microsoft.Network/publicIpAddresses",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIpAllocationMethod": "Static"
+            }
+        },
+        {
+            "name": "[variables('networkSecurityGroupName')]",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "default-allow-ssh",
+                        "properties": {
+                            "priority": 1000,
+                            "sourceAddressPrefix": "*",
+                            "protocol": "Tcp",
+                            "destinationPortRange": "22",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*"
+                        }
+                    }
+                ]
+            },
+            "tags": {
+                "purpose": "build"
+            }
+        }
+    ]
+}
