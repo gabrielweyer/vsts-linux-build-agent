@@ -29,6 +29,8 @@ agentPool=''
 pat=''
 adminUsername=''
 
+vstsBuildAgentVersion='2.112.0'
+
 # Reading options
 TEMP=`getopt -o u:p: --long vsts-url:,agent-name:,agent-pool:,admin-username:,personal-access-token: -n "$0" -- "$@"`
 eval set -- "$TEMP"
@@ -88,11 +90,11 @@ sudo apt-get -qq -y install libunwind8 libcurl3 1>/dev/null
 su - $adminUsername <<HERE_DOCUMENT_VSTS_AGENT
 cd ~
 echo -e "${SECONDARY_TITLE_COLOR}\tDownloading VSTS build agent...${NO_COLOR}"
-wget -q https://github.com/Microsoft/vsts-agent/releases/download/v2.111.1/vsts-agent-ubuntu.16.04-x64-2.111.1.tar.gz
+wget -q "https://github.com/Microsoft/vsts-agent/releases/download/v${vstsBuildAgentVersion}/vsts-agent-ubuntu.16.04-x64-${vstsBuildAgentVersion}.tar.gz"
 echo -e "${SECONDARY_TITLE_COLOR}\tCreating myagent directory${NO_COLOR}"
 mkdir myagent && cd myagent
 echo -e "${SECONDARY_TITLE_COLOR}\tExtracting build agent...${NO_COLOR}"
-tar -zxf ~/vsts-agent-ubuntu.16.04-x64-2.111.1.tar.gz
+tar -zxf ~/vsts-agent-ubuntu.16.04-x64-${vstsBuildAgentVersion}.tar.gz
 echo -e "${SECONDARY_TITLE_COLOR}\tConfiguring VSTS build agent...${NO_COLOR}"
 ./config.sh\
     --url $vstsUrl\
