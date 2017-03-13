@@ -116,6 +116,11 @@ sudo ./svc.sh uninstall
 chmod +x ./uninstall.sh
 HERE_DOCUMENT_VSTS_AGENT
 
+print_main_title 'Updating Git...'
+sudo add-apt-repository -y ppa:git-core/ppa 1>/dev/null
+sudo apt-get -qq -y update 1>/dev/null
+sudo apt-get -qq -y install git 1>/dev/null
+
 print_main_title 'Installing and configuring Docker...'
 sudo apt-get -qq -y --no-install-recommends install curl apt-transport-https ca-certificates curl software-properties-common 1>/dev/null
 curl -fsSL https://apt.dockerproject.org/gpg | sudo apt-key add - 1>/dev/null
