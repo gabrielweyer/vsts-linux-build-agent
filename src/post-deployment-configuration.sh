@@ -29,7 +29,7 @@ agentPool=''
 pat=''
 adminUsername=''
 
-vstsBuildAgentVersion='2.112.0'
+vstsBuildAgentVersion='2.115.0'
 
 # Reading options
 TEMP=`getopt -o u:p: --long vsts-url:,agent-name:,agent-pool:,admin-username:,personal-access-token: -n "$0" -- "$@"`
