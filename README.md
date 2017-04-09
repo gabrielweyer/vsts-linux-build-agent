@@ -19,7 +19,7 @@ Install:
 
 - [Bash on Ubuntu on Windows (WSL)][install-wsl] - makes it easier to generate SSH keys and SSH into the build agent later on
   - This step is not required if you're on OS X or Linux
-- [Azure CLI 2.0 Preview][azure-cli-2] - recommended to install on [bash on Ubuntu on Windows (WSL)][azure-cli-2-bash-ubuntu-windows]
+- [Azure CLI 2.0][azure-cli-2]
 
 ## Generate a SSH public and private key pair
 
@@ -27,7 +27,7 @@ You can read detailed instructions [here][generate-ssh-keys] if required but thi
 
 ### Create a new key
 
-```
+```bash
 ssh-keygen -t rsa -b 2048 -f ~/.ssh/<filename-for-the-private-key> -C "<human-name-for-the-key>" -N <super-strong-passphrase>
 ssh-add ~/.ssh/<filename-for-the-private-key>
 ```
@@ -43,17 +43,17 @@ ssh-add ~/.ssh/<filename-for-the-private-key>
 - Create a new file in the `~/.ssh/` directory with the content of the `Private Key`.
 - Type `ssh-add ~/.ssh/<filename-for-the-private-key>`.
 
-### Troubleshooting
+### Troubleshooting adding the key pair
 
 If you get this error when typing `ssh-add`:
 
-```
+```bash
 Could not open a connection to your authentication agent.
 ```
 
 Run this:
 
-```
+```bash
 eval "$(ssh-agent -s)"
 ```
 
@@ -80,7 +80,6 @@ These parameters will need to be configured in `.src/parameters.json`.
 - `vstsUrl`: base URL of your VSTS account (`https://<your-account>.visualstudio.com/` for example).
 - `agentName`: give your agent a meaningful name (`docker-linux` for example).
 - `agentPool`: name of the the VSTS pool.
-  - **Warning**: due to a bug in the VSTS build agent do not use spaces inside the name. See [GitHub issue][github-issue].
 - `personalAccessToken`:
   - [How to get a Personal Access Token][how-to-get-pat].
   - Confirm the user used to generate the `PAT` [has the required permissions][pat-admin].
@@ -93,7 +92,7 @@ These parameters will need to be configured in `.src/parameters.json`.
 
 Depending on your requirements you can change the value of `storageAccountType` and `diagnosticsStorageAccountType`.
 
-The build agent has been configured to use a static public IP address so that it can whitelisted if you wish to run databases migration from it when deploying. It also makes it easier to SSH into it.
+The build agent has been configured to use a static public IP address so that it can be whitelisted if you wish to run databases migrations from it when deploying. It also makes it easier to SSH into it.
 
 The post deployment script needs to be publicly accessible on the internet. I'm using a [Gist][extensions-gist], if you decide to modify it you'll need to host it somewhere and modify the `./src/template.json` accordingly. **Warning**: do not harcode any credentials in this file!
 
@@ -116,18 +115,19 @@ If you don't want your build agent to remain as `Offline` in the `Agent Pool` wh
 
 SSH into the build agent and type:
 
-```
+```bash
 cd myagent
 ./uninstall.sh
 ```
 
 **Note**: you'll need to provide your `PAT`.
 
-## Troubleshooting
+## Troubleshooting the extension
 
 If the extensions (the post deployment script contained in `./src/post-deployment-configuration.sh`) fail to execute you can refer to this [troubleshooting][troubleshooting-extensions] section.
 
 **TLDR**:
+
 - ssh into the build agent
 - `sudo su`
 - `cat /var/lib/waagent/custom-script/download/0/stderr`
@@ -144,8 +144,6 @@ If the extensions (the post deployment script contained in `./src/post-deploymen
 [azure-ssh-key-pairs-requirement]: https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-linux-mac-create-ssh-keys#disable-ssh-passwords-by-using-ssh-keys
 [lastpass]: https://lastpass.com/
 [create-ssh-config-file]: https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-linux-mac-create-ssh-keys#create-and-configure-an-ssh-config-file
-[azure-cli-2-bash-ubuntu-windows]: https://docs.microsoft.com/en-us/cli/azure/install-az-cli2#ubuntu-1404-lts-and-bash-on-windows-build-14362
-[github-issue]: https://github.com/Microsoft/vsts-agent/issues/802
 [how-to-get-pat]: https://www.visualstudio.com/en-us/docs/build/actions/agents/v2-linux#decide-which-user-youll-use
 [pat-admin]: https://www.visualstudio.com/en-us/docs/build/actions/agents/v2-linux#confirm-the-user-has-permission
 [extensions-gist]: https://gist.githubusercontent.com/gabrielweyer/4ec2cd4d8e2f03ae0f0b497aae926e2b/raw/18945d4ae754ed732be30194cc4831d50ae8e741/post-deployment-configuration.sh
