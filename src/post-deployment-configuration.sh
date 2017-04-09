@@ -19,7 +19,7 @@ print_secondary_title () {
 }
 
 usage () {
-    echo "Usage: $0 -u|--vsts-url <vstsUrl> --agent-name <agentName> --agent-pool <agentPool> --admin-username <adminUsername> -p|--personal-access-tokee <personalAccessToken>" 1>&2;
+    echo "Usage: $0 -u|--vsts-url <vstsUrl> --agent-name <agentName> --agent-pool <agentPool> --admin-username <adminUsername> -p|--personal-access-token <personalAccessToken>" 1>&2;
     exit 1;
 }
 
@@ -76,6 +76,12 @@ if [ -z "$vstsUrl" ] || [ -z "$agentName" ] || [ -z "$agentPool" ] || [ -z "$pat
 	echo "Either one of vstsUrl, agentName, agentPool, pat, adminUsername is empty"
 	usage
 fi
+
+print_main_title 'Creating NuGet cache folder...'
+su - $adminUsername <<HERE_DOCUMENT_MY_HOME
+cd ~
+mkdir nuget-cache
+HERE_DOCUMENT_MY_HOME
 
 print_main_title 'Updating apt-get...'
 sudo apt-get -qq -y update
