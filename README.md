@@ -146,6 +146,6 @@ If the extensions (the post deployment script contained in `./src/post-deploymen
 [create-ssh-config-file]: https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-linux-mac-create-ssh-keys#create-and-configure-an-ssh-config-file
 [how-to-get-pat]: https://www.visualstudio.com/en-us/docs/build/actions/agents/v2-linux#decide-which-user-youll-use
 [pat-admin]: https://www.visualstudio.com/en-us/docs/build/actions/agents/v2-linux#confirm-the-user-has-permission
-[extensions-gist]: https://gist.githubusercontent.com/gabrielweyer/4ec2cd4d8e2f03ae0f0b497aae926e2b/raw/18945d4ae754ed732be30194cc4831d50ae8e741/post-deployment-configuration.sh
+[extensions-gist]: https://gist.githubusercontent.com/gabrielweyer/4ec2cd4d8e2f03ae0f0b497aae926e2b/raw/b08efb4d6d99f36868176bf6e64a24cbbcb6e08d/post-deployment-configuration.sh
 [azure-portal]: https://portal.azure.com/
 [troubleshooting-extensions]: https://docs.microsoft.com/en-us/azure/virtual-machines/virtual-machines-linux-extensions-customscript#troubleshooting
